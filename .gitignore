@@ -1,1 +1,3 @@
 /localsms.db
+*pyc
+localsms.egg-info/*

@@ -19,6 +19,8 @@ setup(name='localsms',
       zip_safe=False,
       install_requires=[
           # -*- Extra requirements: -*-
+	'pyserial',
+	'pytz',
         'ipython',
         "simplejson",
         "httplib2",

@@ -3,6 +3,7 @@ import time
 import datetime 
 
 import ConfigParser
+from optparse import OptionParser
 import simplejson
 import pygsm 
 from sqlobject import connectionForURI, sqlhub  
@@ -82,8 +83,12 @@ def get_messages(config,modem):
     
 
 def main(*args): 
+    parser = OptionParser()
+    parser.add_option("-c", "--config", dest="config",
+                      help="config file")
+    (options,args) = parser.parse_args() 
     print("booting message pool system") 
-    config = get_config("localsms.ini") 
+    config = get_config(options.config) 
     initdb(config) 
     modem = get_modem(config) 
     while True: 
