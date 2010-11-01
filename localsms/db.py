@@ -2,7 +2,7 @@ from sqlobject import SQLObject, StringCol, IntCol, BoolCol, \
     TimeCol
 
 
-class Log(SQLObject): 
+class ModemLog(SQLObject): 
     time = StringCol() 
     modem = StringCol()
     msg = StringCol()
@@ -10,9 +10,12 @@ class Log(SQLObject):
 
 
 class Message(SQLObject):
+    uuid = StringCol()
+    source = StringCol() 
     text = StringCol()
     origin = IntCol(notNone=False)
-    sent = BoolCol() 
+    dest = IntCol(notNone=True) 
+    sent = BoolCol()     
     time = TimeCol() 
     
     def toJson(self): 

@@ -20,6 +20,7 @@ setup(name='localsms',
       install_requires=[
           # -*- Extra requirements: -*-
 	'pyserial',
+        "python-dateutil",
 	'pytz',
         'ipython',
         "simplejson",
