@@ -53,8 +53,17 @@ def make_http(config):
         config.get("gateway","password"))
     return h 
 
+def remove_from_remote(config=None,log=None,message=None): 
+    http = make_http(config)
+    resp, content = http.request(
+        "http://%s:%s/sms/message/%s/" % (
+            config.get("gateway","host"),
+            config.get("gateway","port"),
+            message.uuid),
+        "DELETE")
+    log.info("Removing message %s from the remote server " % message.uuid)
 
-def poll_remote_msgs(config,log):
+def poll_remote_msgs(config=None,log=None):
     http = make_http(config)
     try:
         resp, content = http.request(
@@ -63,16 +72,20 @@ def poll_remote_msgs(config,log):
              config.get("gateway","port")),
             "GET")
         if resp.status == 200:
-            msgs = simplejson.loads(content)            
-            #if len(msgs): log.info(msgs)
-            for msg in msgs:
-                Message(uuid=str(uuid.uuid4()),
+            remoteMsgs = simplejson.loads(content)            
+            if len(remoteMsgs): log.info(remoteMsgs)
+            for remoteMsg in remoteMsgs:
+                msg = Message(uuid=remoteMsg["uuid"],
                         sent=False,
                         source="http",
-                        dest=int(msg["to"]),
-                        time=time_parse(msg["time"]),
-                        text=msg["text"],
-                        origin=int(msg["from"]))
+                        dest=int(remoteMsg["to"]),
+                        time=time_parse(remoteMsg["time"]),
+                        text=remoteMsg["text"],
+                        origin=int(remoteMsg["from"]))
+                remove_from_remote(
+                    config=config,
+                    log=log,
+                    message=msg)
     except Exception, e:
         log.error(e)
 
@@ -90,7 +103,7 @@ def send_to_remote(config,msg,log):
                 ),
             "POST",body=simplejson.dumps(msg.toJson()), 
             headers={'content-type':'text/json'})
-        if resp.code == 200:
+        if resp.status == 200:
             msg.sent = True 
     except Exception,e: 
         log.error("Unable to send msg to remote host %s" % e)
@@ -106,6 +119,7 @@ def get_msg_modem(config,modem,log,connected=None):
         msg = Message(
             uuid=str(uuid.uuid4()),
             sent=False,
+            dest=int(config.get("app","number")),
             source="gsm",
             time=datetime.datetime.now(),
             text=gsmMsg.text,
@@ -119,8 +133,10 @@ def send_to_modem(modem=None,log=None,msg=None):
     Send messages to the modem,
     """
     try: 
-        modem.send_sms(str(msg.dest),str(msg.text)) 
+        log.info("Trying to send msg to the modem") 
+        modem.send_sms("+%s" % msg.dest,str(msg.text)) 
         msg.sent = True
+        log.info("Sent message %s to the modem" % msg.uuid)
     except Exception,e:
         msg.sent = False 
         log.error("Error send to modem %s" % e) 
