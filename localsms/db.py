@@ -20,6 +20,7 @@ class Message(SQLObject):
     
     def toJson(self): 
         return { "text" : self.text, 
+                 "uuid" : self.uuid,
                  "time" : str(self.time),
                  "from" : self.origin } 
 

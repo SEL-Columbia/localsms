@@ -1,8 +1,7 @@
 
-import os,sys 
+import os
 import time
 import datetime 
-import threading
 import logging
 import ConfigParser
 import uuid
