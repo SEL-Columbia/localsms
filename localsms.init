@@ -1,0 +1,20 @@
+#!/bin/sh
+
+. /etc/rc.d/init.d/functions
+
+LOCALSMS_HOME=/home/ivan/dev/modi-labs/python/localsms-env/
+
+case "$1" in 
+    start) 
+        echo -n "Starting localsms"
+        echo 
+        cd $LOCALSMS_HOME
+        pwd
+        source  bin/activate && localsms_start -c localsms/localsms.ini
+        echo -n "Started localsms" 
+        echo 
+        ;; 
+    *)
+     exit 1 
+     ;; 
+esac 
