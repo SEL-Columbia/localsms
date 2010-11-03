@@ -1,5 +1,8 @@
+import os
+
+from sqlobject import connectionForURI, sqlhub  
 from sqlobject import SQLObject, StringCol, IntCol, BoolCol, \
-    TimeCol
+    TimeCol, ForeignKey, EnumCol
 
 
 class ModemLog(SQLObject): 
@@ -8,7 +11,11 @@ class ModemLog(SQLObject):
     msg = StringCol()
     msgType = StringCol() 
 
-
+class MessageState(SQLObject):
+    time = StringCol() 
+    message = ForeignKey("Message") 
+    state = EnumCol(enumValues=('new')) 
+    
 class Message(SQLObject):
     uuid = StringCol()
     source = StringCol() 
@@ -24,3 +31,14 @@ class Message(SQLObject):
                  "time" : str(self.time),
                  "from" : self.origin } 
 
+
+def initdb(config):
+    dbfile = os.path.abspath(
+        config.get("app","db_params"))
+    conn = connectionForURI(
+        "%s:%s" % (config.get("app","db_type"),
+                   dbfile))
+    sqlhub.processConnection = conn
+    Message.createTable(ifNotExists=True)
+    ModemLog.createTable(ifNotExists=True) 
+    MessageState.createTable(ifNotExists=True)
