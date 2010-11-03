@@ -10,13 +10,16 @@ from optparse import OptionParser
 
 
 import simplejson
-import pygsm 
+import pygsm
 import httplib2
 from sqlobject import connectionForURI, sqlhub  
 from dateutil.parser import parse as time_parse
 
 from localsms.db import Message, ModemLog
 
+
+def get_now():
+    return datetime.datetime.now() 
 
 def initdb(config):
     dbfile = os.path.abspath(
@@ -60,7 +63,7 @@ def remove_from_remote(config=None,log=None,message=None):
             config.get("gateway","port"),
             message.uuid),
         "DELETE")
-    log.info("Removing message %s from the remote server " % message.uuid)
+    log.info("Removing msg<%s> from the remote server " % message.uuid)
 
 def poll_remote_msgs(config=None,log=None):
     http = make_http(config)
@@ -72,7 +75,6 @@ def poll_remote_msgs(config=None,log=None):
             "GET")
         if resp.status == 200:
             remoteMsgs = simplejson.loads(content)            
-            if len(remoteMsgs): log.info(remoteMsgs)
             for remoteMsg in remoteMsgs:
                 msg = Message(uuid=remoteMsg["uuid"],
                         sent=False,
@@ -81,6 +83,7 @@ def poll_remote_msgs(config=None,log=None):
                         time=time_parse(remoteMsg["time"]),
                         text=remoteMsg["text"],
                         origin=int(remoteMsg["from"]))
+                log.info("Got msg<%s> from remote" % msg.uuid)
                 remove_from_remote(
                     config=config,
                     log=log,
@@ -104,27 +107,32 @@ def send_to_remote(config,msg,log):
             headers={'content-type':'text/json'})
         if resp.status == 200:
             msg.sent = True 
+            log.info("Sent msg<%s> to remote" % msg.uuid)
     except Exception,e: 
-        log.error("Unable to send msg to remote host %s" % e)
+        log.error("Unable to send msg<%s> to remote host %s" % (msg,e))
 
 
-def get_msg_modem(config,modem,log,connected=None): 
+def get_msg_from_modem(config=None,modem=None,log=None): 
     """
-    Takes messages off of the modem
+    Take messages off of the modem
     """
-    gsmMsg = modem.next_message()   
-    if gsmMsg:
-        log.info("Got Message from Modem %s" % gsmMsg)
-        msg = Message(
-            uuid=str(uuid.uuid4()),
-            sent=False,
-            dest=int(config.get("app","number")),
-            source="gsm",
-            time=datetime.datetime.now(),
-            text=gsmMsg.text,
-            origin=int(gsmMsg.sender))
-        if connected:
+    try:
+
+        gsmMsg = modem.next_message()   
+        if gsmMsg:
+            msg = Message(
+                uuid=str(uuid.uuid4()),
+                sent=False,
+                dest=int(config.get("app","number")),
+                source="gsm",
+                time=datetime.datetime.now(),
+                text=gsmMsg.text,
+                origin=int(gsmMsg.sender))
+            log.info("Got msg<%s> from modem" % msg.uuid)
             send_to_remote(config,msg,log)
+
+    except pygsm.errors.GsmReadError:
+        log.error("Error talking to modem skipping and trying again.")
 
 
 def send_to_modem(modem=None,log=None,msg=None): 
@@ -132,16 +140,16 @@ def send_to_modem(modem=None,log=None,msg=None):
     Send messages to the modem,
     """
     try: 
-        log.info("Trying to send msg to the modem") 
+        log.info("Trying to send msg<%s> to the modem" % msg.uuid) 
         modem.send_sms("+%s" % msg.dest,str(msg.text)) 
         msg.sent = True
-        log.info("Sent message %s to the modem" % msg.uuid)
+        log.info("Sent msg<%s> to the modem" % msg.uuid)
     except Exception,e:
         msg.sent = False 
-        log.error("Error send to modem %s" % e) 
+        log.error("Error sending msg<%s> to modem %s" % (msg.uuid,e)) 
 
 
-def get_and_send_cache(config=None,modem=None,log=None):
+def send_cache_modem(config=None,modem=None,log=None):
     """
     Query database to find message that need to be sent via
     the modem.
@@ -154,10 +162,23 @@ def get_and_send_cache(config=None,modem=None,log=None):
                           log=log,
                           msg=msg) 
 
+def send_cache_remote(config=None,modem=None,log=None): 
+    """
+    Sends to remote a local cache of messages
+    """
+    unsentMsgs = Message.selectBy(sent=False,source="gsm") 
+    if unsentMsgs.count() > 0: 
+        log.info("Unsent messages %s" % unsentMsgs.count())
+        for msg in unsentMsgs:
+            send_to_remote(
+                config=config,
+                log=log,
+                msg=msg)
+
     
 def ping_remote(config=None,log=None):
     """
-    Check to see if the remote server 
+    Check to see if the remote server is runnning.
     """
     try: 
         response = urllib2.urlopen(
@@ -177,27 +198,35 @@ def ping_remote(config=None,log=None):
 def start_service(config=None,modem=None,log=None): 
     log.info("Running messaging pooling") 
     while True:         
-        connected = ping_remote(config=config,
-                                log=log)
-        if connected:
-            get_msg_modem(config=config,
-                          modem=modem,
-                          log=log,
-                          connected=connected)  # why am i passing conn here? 
-            get_and_send_cache(config=config,
-                               modem=modem,
-                               log=log)
-            poll_remote_msgs(config=config,
-                             log=log) 
+
+        if ping_remote(config=config,log=log):
+
+            get_msg_from_modem(
+                config=config,
+                modem=modem,
+                log=log)
+
+            send_cache_modem(
+                config=config,
+                modem=modem,
+                log=log)
+
+            send_cache_remote(
+                config=config,
+                modem=modem,
+                log=log)
+
+            poll_remote_msgs(
+                config=config,
+                log=log) 
         else: 
             log.error("Unable to reach remote server")
-            get_msg_modem(config=config,
-                          modem=modem,
-                          log=log,
-                          connected=connected)
+            get_msg_from_modem(
+                config=config,
+                modem=modem,
+                log=log)
 
-        time.sleep(
-            float(config.get("app","modem_poll")))
+        time.sleep(int(config.get("app","modem_poll")))
         
 
 
