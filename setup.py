@@ -27,7 +27,6 @@ setup(name='localsms',
         "httplib2",
         'sqlobject',
         'ipdb',
-        'repoze.bfg'
       ],
 
     entry_points="""
