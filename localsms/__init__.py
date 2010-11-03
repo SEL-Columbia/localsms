@@ -1,59 +1,18 @@
 
-import os
 import time
 import datetime 
 import logging
-import ConfigParser
 import uuid
 import urllib2
 from optparse import OptionParser
 
-
 import simplejson
 import pygsm
-import httplib2
-from sqlobject import connectionForURI, sqlhub  
 from dateutil.parser import parse as time_parse
 
-from localsms.db import Message, ModemLog
+from localsms.db import Message, initdb
+from localsms.utils import make_http, get_modem, get_config
 
-
-def get_now():
-    return datetime.datetime.now() 
-
-def initdb(config):
-    dbfile = os.path.abspath(
-        config.get("app","db_params"))
-    conn = connectionForURI(
-        "%s:%s" % (config.get("app","db_type"),
-                   dbfile))
-    sqlhub.processConnection = conn
-    Message.createTable(ifNotExists=True)
-    ModemLog.createTable(ifNotExists=True) 
-    
-def make_modem_log(modem,msg,msgType): 
-    ModemLog(time=str(datetime.datetime.now()),
-        modem=str(modem),
-        msg=str(msg),
-        msgType=str(msgType))
-
-def get_modem(config): 
-    return pygsm.GsmModem(
-        port=config.get("app","modem_port"),
-        logger=make_modem_log,
-        baudrate=config.get("app","modem_baudrate"))
-
-def get_config(path): 
-    config = ConfigParser.RawConfigParser()
-    config.read(path) 
-    return config 
-
-def make_http(config): 
-    h = httplib2.Http() 
-    h.add_credentials(
-        config.get("gateway","username"),
-        config.get("gateway","password"))
-    return h 
 
 def remove_from_remote(config=None,log=None,message=None): 
     http = make_http(config)
@@ -198,7 +157,7 @@ def ping_remote(config=None,log=None):
 def start_service(config=None,modem=None,log=None): 
     log.info("Running messaging pooling") 
     while True:         
-
+        
         if ping_remote(config=config,log=log):
 
             get_msg_from_modem(
@@ -226,7 +185,7 @@ def start_service(config=None,modem=None,log=None):
                 modem=modem,
                 log=log)
 
-        time.sleep(int(config.get("app","modem_poll")))
+        time.sleep(int(config.get("app","poll")))
         
 
 
