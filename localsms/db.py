@@ -14,7 +14,11 @@ class ModemLog(SQLObject):
 class MessageState(SQLObject):
     time = StringCol() 
     message = ForeignKey("Message") 
-    state = EnumCol(enumValues=('new')) 
+    component = EnumCol(enumValues=('gw','mp'))
+    state = EnumCol(enumValues=(
+            'new',
+            'saved-db',
+            'sent-to-gateway')) 
     
 class Message(SQLObject):
     uuid = StringCol()

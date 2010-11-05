@@ -64,9 +64,9 @@ def send_to_remote(config,msg,log):
                 ),
             "POST",body=simplejson.dumps(msg.toJson()), 
             headers={'content-type':'text/json'})
-        if resp.status == 200:
-            msg.sent = True 
-            log.info("Sent msg<%s> to remote" % msg.uuid)
+        msg.sent = True 
+        log.info("%s:%s" % (resp,content))
+        log.info("Sent msg<%s> to remote" % msg.uuid)
     except Exception,e: 
         log.error("Unable to send msg<%s> to remote host %s" % (msg,e))
 
@@ -76,7 +76,6 @@ def get_msg_from_modem(config=None,modem=None,log=None):
     Take messages off of the modem
     """
     try:
-
         gsmMsg = modem.next_message()   
         if gsmMsg:
             msg = Message(
@@ -89,7 +88,6 @@ def get_msg_from_modem(config=None,modem=None,log=None):
                 origin=int(gsmMsg.sender))
             log.info("Got msg<%s> from modem" % msg.uuid)
             send_to_remote(config,msg,log)
-
     except pygsm.errors.GsmReadError:
         log.error("Error talking to modem skipping and trying again.")
 
