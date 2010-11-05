@@ -1,4 +1,5 @@
 import os
+import datetime 
 
 from sqlobject import connectionForURI, sqlhub  
 from sqlobject import SQLObject, StringCol, IntCol, BoolCol, \
@@ -14,11 +15,13 @@ class ModemLog(SQLObject):
 class MessageState(SQLObject):
     time = StringCol() 
     message = ForeignKey("Message") 
-    component = EnumCol(enumValues=('gw','mp'))
+    component = EnumCol(enumValues=('gw','lsms'))
     state = EnumCol(enumValues=(
-            'new',
+            'received-gsm',
+            'received-http',
             'saved-db',
-            'sent-to-gateway')) 
+            'failure',
+            'sent-to-remote')) 
     
 class Message(SQLObject):
     uuid = StringCol()
@@ -34,7 +37,14 @@ class Message(SQLObject):
                  "uuid" : self.uuid,
                  "time" : str(self.time),
                  "from" : self.origin } 
-
+    
+    def add_state(self,state): 
+        MessageState(
+            time=str(datetime.datetime.now()),
+            message=self,
+            component="lsms",
+            state=state) 
+        
 
 def initdb(config):
     dbfile = os.path.abspath(

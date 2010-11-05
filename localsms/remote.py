@@ -64,6 +64,7 @@ def send_message(config,msg,log):
     Makes an http request to send the message to a webserver
     """
     try:
+        
         http = make_http(config)
         resp, content = http.request(
             "http://%s:%s/sms/send/" % ( 
@@ -72,8 +73,8 @@ def send_message(config,msg,log):
                 ),
             "POST",body=simplejson.dumps(msg.toJson()), 
             headers={'content-type':'text/json'})
+        msg.add_state("sent-to-remote")
         msg.sent = True 
-        log.info("%s:%s" % (resp,content))
         log.info("Sent msg<%s> to remote" % msg.uuid)
     except Exception,e: 
         log.error("Unable to send msg<%s> to remote host %s" % (msg,e))

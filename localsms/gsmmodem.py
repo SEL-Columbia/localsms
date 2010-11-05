@@ -41,6 +41,7 @@ def get_message(config=None,modem=None,log=None):
                 time=datetime.datetime.now(),
                 text=gsmMsg.text,
                 origin=int(gsmMsg.sender))
+            msg.add_state("received-gsm") 
             log.info("Got msg<%s> from modem" % msg.uuid)
             remote.send_message(config,msg,log)
     except GsmReadError:
