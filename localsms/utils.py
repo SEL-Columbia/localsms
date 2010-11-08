@@ -9,10 +9,10 @@ import httplib2
 from localsms.db import ModemLog
 
 
-def make_logger(name=None):                 
+def make_logger(config=None,name=None):                 
     log = logging.getLogger(name) 
     log.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
+    ch = logging.FileHandler(config.get("app","log_file"))
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(
         logging.Formatter(

@@ -22,11 +22,9 @@ setup(name='localsms',
 	'pyserial',
         "python-dateutil",
 	'pytz',
-        'ipython',
         "simplejson",
         "httplib2",
         'sqlobject',
-        'ipdb',
       ],
 
     entry_points="""

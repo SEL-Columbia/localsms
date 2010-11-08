@@ -23,15 +23,14 @@ def start_service(config=None,modem=None,log=None):
         
 
 def main(*args): 
-    log = make_logger(name="localsms.app.main")
-
     parser = OptionParser()
     parser.add_option("-c", "--config", dest="config",
                       help="config file")
     (options,args) = parser.parse_args() 
-    log.info("Booting messaging system")
 
     config = get_config(options.config)
+    log = make_logger(config=config,name="localsms.app.main")
+    log.info("Booting messaging system")
     initdb(config)
     start_service(config=config,modem=get_modem(config,log),log=log)
 
