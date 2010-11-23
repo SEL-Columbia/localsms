@@ -22,11 +22,11 @@ def send_local_messages(config=None,modem=None,log=None):
 def remove_from_remote(config=None,log=None,message=None): 
     http = make_http(config)
     resp, content = http.request(
-        "http://%s:%s/sms/message/%s/" % (
+        "http://%s:%s/message/remove/%s" % (
             config.get("remote","host"),
             config.get("remote","port"),
             message.uuid),
-        "DELETE")
+        "POST")
     log.info("Removing msg<%s> from the remote server " % message.uuid)
 
 
@@ -34,7 +34,7 @@ def get_message(config=None,log=None):
     http = make_http(config)
     try:
         resp, content = http.request(
-            "http://%s:%s/sms/received/" % 
+            "http://%s:%s/sms/received" % 
             (config.get("remote","host"),
              config.get("remote","port")),
             "GET")
@@ -44,10 +44,10 @@ def get_message(config=None,log=None):
                 msg = Message(uuid=remoteMsg["uuid"],
                         sent=False,
                         source="http",
-                        dest=int(remoteMsg["to"]),
+                        dest=int(remoteMsg["number"]),
                         time=time_parse(remoteMsg["time"]),
                         text=remoteMsg["text"],
-                        origin=int(remoteMsg["from"]))
+                        origin=int(1))
                 log.info("Got msg<%s> from remote" % msg.uuid)
                 remove_from_remote(
                     config=config,
@@ -64,10 +64,9 @@ def send_message(config,msg,log):
     Makes an http request to send the message to a webserver
     """
     try:
-        
         http = make_http(config)
         resp, content = http.request(
-            "http://%s:%s/sms/send/" % ( 
+            "http://%s:%s/sms/send" % ( 
                 config.get("remote","host"),
                 config.get("remote","port"),          
                 ),

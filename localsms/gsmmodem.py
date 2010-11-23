@@ -42,7 +42,7 @@ def get_message(config=None,modem=None,log=None):
                 text=gsmMsg.text,
                 origin=int(gsmMsg.sender))
             msg.add_state("received-gsm") 
-            log.info("Got msg<%s> from modem" % msg.uuid)
+            log.info("Got msg<%s> from modem" % msg.uuid)            
             remote.send_message(config,msg,log)
     except GsmReadError:
         log.error("Error talking to modem skipping and trying again.")

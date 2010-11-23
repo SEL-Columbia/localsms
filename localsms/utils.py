@@ -27,7 +27,7 @@ def ping_remote(config=None,log=None):
     """
     try: 
         response = urllib2.urlopen(
-            "http://%s:%s/sms/" % (
+            "http://%s:%s/sms/ping" % (
                 config.get("remote","host"),
                 config.get("remote","port")))
         if response.code == 200:  # make sure response is a 200 not 405 
