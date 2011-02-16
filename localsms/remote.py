@@ -57,7 +57,8 @@ def get_message(config=None,log=None):
         log.error(e)
 
 
-
+import urllib
+import urllib2
 
 def send_message(config,msg,log):
     """
@@ -65,13 +66,13 @@ def send_message(config,msg,log):
     """
     try:
         http = make_http(config)
-        resp, content = http.request(
-            "http://%s:%s/sms/send" % ( 
+        req = urllib2.Request(
+            "http://%s:%s/interface/send/3" % ( 
                 config.get("remote","host"),
                 config.get("remote","port"),          
-                ),
-            "POST",body=simplejson.dumps(msg.toJson()), 
-            headers={'content-type':'text/json'})
+                ),data=urllib.urlencode({'number': msg.origin,
+                                         'text': msg.text}))
+        urllib2.urlopen(req)
         msg.add_state("sent-to-remote")
         msg.sent = True 
         log.info("Sent msg<%s> to remote" % msg.uuid)
